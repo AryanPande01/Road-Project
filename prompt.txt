@@ -1,0 +1,325 @@
+I want you to first read the entire README.md file and fully understand the existing project before making any changes.
+
+Do not assume anything until you understand:
+
+What the project currently does
+Current project architecture
+Input and output flow
+Existing KML generation logic
+Existing Excel generation logic
+Folder structure
+Images folder
+Current data models
+After understanding the project, implement the following functionality while keeping the existing architecture clean and maintainable.
+
+Project Goal
+This software is built for a road infrastructure company.
+
+The objective is to automate a workflow that currently consumes a large amount of manual effort.
+
+Currently, engineers manually:
+
+rename thousands of placemarks
+replace placeholder symbols
+calculate quantities manually
+prepare Excel BOQ sheets
+repeatedly type long names such as
+CAP PTBM 15mm x6
+CAP PTBM 10mm x6
+
+This is slow, repetitive and error-prone.
+
+The software should eliminate manual work, reduce human errors and save significant time.
+
+New Workflow
+The workflow should become:
+
+Step 1
+User imports a KML file.
+
+The KML contains placemarks whose names are only placeholders.
+
+Example:
+
+A
+B
+C
+D
+E
+F
+...
+
+These placeholder names are fixed codes.
+
+Example mapping:
+
+A -> CAP PTBM 15mm x6
+
+B -> CAP PTBM 10mm x6
+
+C -> (another reserved item)
+
+D -> (text)
+
+E -> Speed Breaker Sign Board
+
+F -> ...
+
+The mapping must be configurable in one location.
+
+Not hardcoded throughout the code.
+
+Step 2
+Generate Output KML
+
+Currently the project generates polygons.
+
+This must change.
+
+Instead of drawing polygons,
+
+the output KML should place an image at each placemark location.
+
+Example:
+
+If placemark name is
+
+A
+
+then the output KML should place the image corresponding to
+
+CAP PTBM 15mm x6
+
+at that coordinate.
+
+If placemark is
+
+B
+
+then place the
+
+CAP PTBM 10mm x6
+
+image.
+
+Images already exist inside the Images folder.
+
+Each placeholder code has one corresponding image.
+
+The mapping should be
+
+Placeholder
+↓
+
+Reserved Item
+↓
+
+Image
+
+Important
+Do NOT draw polygons anymore.
+
+The output KML should mainly contain image icons placed at the placemark coordinates.
+
+Sign Boards
+Some reserved placeholders represent sign boards.
+
+Example:
+
+E -> Speed Breaker Sign Board
+
+Sign boards are different from road markings.
+
+The original placemark may not lie exactly on the road.
+
+That is acceptable.
+
+Simply place the corresponding sign board image at the placemark location.
+
+Each sign board type should have its own reserved placeholder code.
+
+Example:
+
+E -> Speed Breaker Sign
+
+F -> School Ahead
+
+G -> Curve Left
+
+H -> Curve Right
+
+...
+
+Each should use its own image.
+
+Step 3
+User Reviews the KML
+
+The generated KML is opened by the client.
+
+The client may:
+
+move markers
+delete markers
+add markers
+adjust locations
+until the KML becomes final.
+
+No Excel should be generated yet.
+
+Step 4
+Generate Excel
+
+After the client finalizes the KML,
+
+they will import the finalized KML back into the application.
+
+Now generate the Excel BOQ.
+
+Excel Requirements
+The Excel should NOT contain placeholder names.
+
+Instead, replace every placeholder with its reserved full name.
+
+Example
+
+Instead of
+
+A
+
+write
+
+CAP PTBM 15mm x6
+
+Instead of
+
+B
+
+write
+
+CAP PTBM 10mm x6
+
+etc.
+
+Group Similar Items
+The Excel should automatically group identical items.
+
+Example
+
+Instead of
+
+CAP PTBM 15mm x6
+
+CAP PTBM 15mm x6
+
+CAP PTBM 15mm x6
+
+CAP PTBM 15mm x6
+
+show
+
+Item Quantity
+CAP PTBM 15mm x6 4
+
+Likewise
+
+Item Quantity
+CAP PTBM 10mm x6 18
+
+Every identical item should be grouped.
+
+Cost Calculation
+Each reserved item will eventually have a unit cost.
+
+The Excel should be structured so that adding cost calculations is straightforward.
+
+Ideally,
+
+Item
+
+Quantity
+
+Unit Cost
+
+Total Cost
+
+Even if costs are not yet available, structure the code to support them.
+
+Multiple Project Patches
+A single KML may contain multiple geographical patches.
+
+Example
+
+Surat
+
+Pune
+
+Mumbai
+
+These are separate work patches.
+
+The Excel should create separate worksheets for each patch.
+
+Example
+
+Workbook
+
+Sheet 1
+Surat
+
+Sheet 2
+Pune
+
+Sheet 3
+Mumbai
+
+Each sheet should contain only the items belonging to that patch.
+
+Do not mix different project areas into one sheet.
+
+Mapping System
+Create a clean mapping system.
+
+Example
+
+A
+↓
+
+CAP PTBM 15mm x6
+↓
+
+15mm.png
+↓
+
+Unit Cost
+
+Everything should come from one centralized configuration so future additions only require editing one file.
+
+Avoid duplicated mappings throughout the project.
+
+Code Quality
+While implementing:
+
+Read the existing project first.
+Reuse existing code wherever possible.
+Avoid breaking current functionality.
+Keep functions modular.
+Avoid hardcoded values.
+Use clean architecture.
+Add comments where helpful.
+Keep mappings centralized.
+Make future additions easy.
+End Goal
+The final software should:
+
+Read a KML containing placeholder codes.
+Convert placeholders into image-based KML markers.
+Allow the client to review and edit the KML.
+Import the finalized KML.
+Generate an Excel BOQ.
+Replace placeholder codes with full item names.
+Group identical items and calculate quantities.
+Support future cost calculations.
+Create separate Excel worksheets for each project patch.
+Greatly reduce manual typing, time, and human error for road infrastructure projects.
+Before making any code changes, explain your understanding of the current project architecture based on README.md, identify which files need modification, and propose an implementation plan. After approval, implement the changes incrementally with clear, well-documented commits or sections.

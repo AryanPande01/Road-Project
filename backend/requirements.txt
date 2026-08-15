@@ -1,8 +1,0 @@
-opencv-python
-numpy
-pandas
-shapely
-staticmap
-fastapi
-uvicorn
-openpyxl
