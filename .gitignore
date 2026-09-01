@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+venv/
+.DS_Store
+.vscode/
+cache/
+outputs/
+ouput2/
+check_ge.py
+.claude/

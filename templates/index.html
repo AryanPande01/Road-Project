@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RoadMark Studio — Road Marking Generator</title>
+<style>
+  :root{
+    --bg:#eef2f7; --surface:#ffffff; --surface-2:#f8fafc;
+    --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+    --primary:#2563eb; --primary-d:#1d4ed8; --primary-ink:#eff6ff;
+    --accent:#0ea5e9; --ok:#059669; --ok-bg:#ecfdf5; --warn:#dc2626; --warn-bg:#fef2f2;
+    --shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px rgba(15,23,42,.06);
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+
+  /* ---------------- login screen ---------------- */
+  #loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .login-card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);
+              border-radius:var(--radius);box-shadow:var(--shadow);padding:32px 30px}
+  .login-brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:17px;
+               letter-spacing:-.2px;margin-bottom:22px;justify-content:center}
+  .login-brand .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--primary),#1e40af);
+        display:grid;place-items:center;box-shadow:var(--shadow)}
+  .login-brand .logo svg{width:20px;height:20px}
+  .login-card h1{font-size:19px;margin:0 0 4px;text-align:center}
+  .login-card p.sub{color:var(--muted);font-size:13.5px;text-align:center;margin:0 0 22px}
+  .login-field{margin-bottom:14px}
+  .login-field label{display:block;font-size:13px;font-weight:600;color:#334155;margin-bottom:7px}
+  .login-field .inp{display:flex;align-items:center;background:var(--surface);border:1px solid #cbd5e1;
+       border-radius:10px;padding:0 12px;transition:.15s}
+  .login-field .inp:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+  .login-field .inp input{border:0;outline:0;padding:11px 8px;font:inherit;font-size:15px;width:100%;
+       background:transparent;color:var(--ink)}
+  .login-btn{width:100%;appearance:none;border:0;border-radius:10px;padding:12px 20px;font:inherit;
+       font-weight:600;font-size:15px;cursor:pointer;background:var(--primary);color:#fff;
+       box-shadow:0 6px 16px rgba(37,99,235,.28);margin-top:6px}
+  .login-btn:hover{background:var(--primary-d)}
+  .login-divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12.5px;margin:18px 0}
+  .login-divider::before,.login-divider::after{content:"";flex:1;height:1px;background:var(--line)}
+  .google-btn{width:100%;appearance:none;border:1px solid #cbd5e1;border-radius:10px;padding:11px 20px;
+       font:inherit;font-weight:600;font-size:14.5px;cursor:pointer;background:#fff;color:#334155;
+       display:flex;align-items:center;justify-content:center;gap:10px}
+  .google-btn:hover{background:var(--surface-2)}
+  .google-btn svg{width:18px;height:18px}
+  .login-err{margin-top:14px;background:var(--warn-bg);border:1px solid #fecaca;color:#991b1b;
+       padding:10px 13px;border-radius:10px;font-size:13.5px;font-weight:500;display:none}
+  .login-err.show{display:block}
+  .login-hint{margin-top:16px;color:var(--muted);font-size:12px;text-align:center}
+
+  /* ---------------- top bar ---------------- */
+  .topbar{background:var(--surface);border-bottom:1px solid var(--line);
+          position:sticky;top:0;z-index:10}
+  .topbar .in{max-width:1040px;margin:0 auto;padding:14px 24px;display:flex;
+          align-items:center;gap:12px}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:17px;letter-spacing:-.2px}
+  .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--primary),#1e40af);
+        display:grid;place-items:center;box-shadow:var(--shadow)}
+  .logo svg{width:20px;height:20px}
+  .brand small{display:block;font-weight:500;font-size:11.5px;color:var(--muted);letter-spacing:.2px}
+  .badge{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--primary);
+         background:var(--primary-ink);border:1px solid #dbeafe;padding:5px 11px;border-radius:20px}
+  .logout-btn{font-size:12.5px;font-weight:600;color:#334155;background:var(--surface-2);
+         border:1px solid #cbd5e1;padding:6px 12px;border-radius:20px;cursor:pointer;margin-left:10px}
+  .logout-btn:hover{background:var(--line)}
+
+  main{max-width:1040px;margin:0 auto;padding:34px 24px 80px}
+  .hero h1{font-size:27px;letter-spacing:-.5px;margin:0 0 8px}
+  .hero p{color:var(--muted);margin:0 0 26px;font-size:15.5px;max-width:680px}
+
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+         box-shadow:var(--shadow);overflow:hidden}
+  .tabs{display:flex;gap:2px;padding:8px 8px 0;background:var(--surface-2);border-bottom:1px solid var(--line)}
+  .tab{appearance:none;border:0;background:transparent;padding:13px 20px;font:inherit;font-weight:600;
+       color:var(--muted);cursor:pointer;border-radius:10px 10px 0 0;position:relative;font-size:14.5px}
+  .tab .ic{width:16px;height:16px;vertical-align:-3px;margin-right:7px}
+  .tab.active{color:var(--primary);background:var(--surface)}
+  .tab.active::after{content:"";position:absolute;left:14px;right:14px;bottom:-1px;height:2px;background:var(--primary)}
+  .body{padding:26px}
+
+  .drop{border:1.5px dashed #c7d2e0;border-radius:12px;padding:30px 20px;text-align:center;
+        cursor:pointer;transition:.15s;background:var(--surface-2)}
+  .drop:hover{border-color:var(--primary);background:#f5f9ff}
+  .drop.drag{border-color:var(--primary);background:#eef5ff}
+  .drop .ic{width:40px;height:40px;color:var(--primary);opacity:.9}
+  .drop .t{font-weight:600;margin-top:8px}
+  .drop .s{color:var(--muted);font-size:13px;margin-top:2px}
+  .drop .fname{margin-top:12px;color:var(--ok);font-weight:600;font-size:14px;word-break:break-all}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+  .field label{display:block;font-size:13px;font-weight:600;color:#334155;margin-bottom:7px}
+  .field .hint{font-size:12px;color:var(--muted);font-weight:400;margin-top:6px}
+  .inp{display:flex;align-items:center;background:var(--surface);border:1px solid #cbd5e1;
+       border-radius:10px;padding:0 12px;transition:.15s}
+  .inp:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+  .inp span{color:var(--muted);font-size:14px}
+  .inp input{border:0;outline:0;padding:11px 8px;font:inherit;font-size:15px;width:100%;background:transparent;color:var(--ink)}
+  .inp select{border:0;outline:0;width:100%;background:transparent;font:inherit;padding:11px 8px;}
+
+  .full{grid-column:1 / -1}
+
+  .actions-row{display:flex;align-items:center;gap:14px;margin-top:24px;flex-wrap:wrap}
+  .btn{appearance:none;border:0;border-radius:10px;padding:13px 24px;font:inherit;font-weight:600;
+       font-size:15px;cursor:pointer;display:inline-flex;align-items:center;gap:9px;transition:.15s}
+  .btn:disabled{opacity:.55;cursor:default}
+  .btn-primary{background:var(--primary);color:#fff;box-shadow:0 6px 16px rgba(37,99,235,.28)}
+  .btn-primary:hover:not(:disabled){background:var(--primary-d)}
+  .btn-ghost{background:var(--surface);color:#334155;border:1px solid #cbd5e1}
+  .btn-ghost:hover{background:var(--surface-2)}
+  .btn-earth{background:#0b8043;color:#fff}
+  .btn-earth:hover{background:#0a6e3a}
+  .btn .ic{width:17px;height:17px}
+
+  .err{margin-top:16px;background:var(--warn-bg);border:1px solid #fecaca;color:#991b1b;
+       padding:12px 14px;border-radius:10px;font-size:14px;font-weight:500}
+  .note{margin-top:14px;color:var(--muted);font-size:13px}
+
+  /* results */
+  .results{margin-top:26px}
+  .results.hidden,.err.hidden,.tabpane.hidden{display:none}
+  .rhead{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .rhead h2{font-size:18px;margin:0}
+  .pill{font-size:12px;font-weight:600;color:var(--ok);background:var(--ok-bg);
+        border:1px solid #a7f3d0;padding:3px 10px;border-radius:20px}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+  .stat .n{font-size:24px;font-weight:700;letter-spacing:-.5px}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:3px;font-weight:500}
+  .toolbar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+  .tbl-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+  .tbl-wrap{max-height:360px;overflow:auto}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px;
+     background:var(--surface-2);position:sticky;top:0}
+  tbody tr:last-child td{border-bottom:0}
+  .tag{font-size:11.5px;padding:2px 9px;border-radius:20px;font-weight:600}
+  .tag.ok{background:var(--ok-bg);color:var(--ok)}
+  .tag.flag{background:var(--warn-bg);color:var(--warn)}
+
+  .spinner{width:16px;height:16px;border:2.5px solid rgba(255,255,255,.45);
+      border-top-color:#fff;border-radius:50%;display:inline-block;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;
+     padding:12px 20px;border-radius:10px;font-size:14px;box-shadow:var(--shadow);opacity:0;
+     transition:.25s;pointer-events:none;z-index:50}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+  footer{max-width:1040px;margin:0 auto;padding:0 24px 40px;color:var(--muted);font-size:12.5px}
+  @media(max-width:640px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
+
+  /* ---------------- zone-price modal ---------------- */
+  .modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;
+       align-items:center;justify-content:center;z-index:60;padding:20px}
+  .modal-overlay.show{display:flex}
+  .modal{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--line);
+       border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+  .modal-head{display:flex;align-items:center;gap:10px;padding:18px 22px;border-bottom:1px solid var(--line)}
+  .modal-head h3{margin:0;font-size:16px}
+  .modal-head .x{margin-left:auto;appearance:none;border:0;background:transparent;font-size:22px;
+       line-height:1;color:var(--muted);cursor:pointer}
+  .modal-body{padding:20px 22px}
+  .zrow{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .zrow label{flex:0 0 92px;font-size:13.5px;font-weight:600;color:#334155}
+  .zrow .inp{flex:1}
+  .modal-foot{display:flex;gap:10px;justify-content:flex-end;padding:16px 22px;border-top:1px solid var(--line);background:var(--surface-2)}
+  .modal-err{margin:0 22px 14px;background:var(--warn-bg);border:1px solid #fecaca;color:#991b1b;
+       padding:10px 13px;border-radius:10px;font-size:13.5px;font-weight:500;display:none}
+  .modal-err.show{display:block}
+</style>
+</head>
+<body>
+
+<!-- ==================== LOGIN SCREEN ==================== -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-brand">
+      <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"
+         stroke-linecap="round"><path d="M4 20L9 4M20 20L15 4M12 6v2M12 12v2M12 18v0"/></svg></span>
+      <span>RoadMark Studio</span>
+    </div>
+    <h1>Sign in</h1>
+    <p class="sub">Enter your credentials to continue</p>
+
+    <form id="loginForm">
+      <div class="login-field">
+        <label>Username</label>
+        <div class="inp"><input id="loginUser" type="text" autocomplete="username" placeholder="Username"></div>
+      </div>
+      <div class="login-field">
+        <label>Password</label>
+        <div class="inp"><input id="loginPass" type="password" autocomplete="current-password" placeholder="Password"></div>
+      </div>
+      <button type="submit" class="login-btn">Sign in</button>
+      <div id="loginErr" class="login-err">Invalid username or password.</div>
+    </form>
+
+    <div class="login-divider">or</div>
+    <button type="button" id="googleBtn" class="google-btn">
+      <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l6-6C34.6 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.2-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.7 18.9 13 24 13c3 0 5.8 1.1 7.9 3l6-6C34.6 5.1 29.6 3 24 3 16 3 9.1 7.6 6.3 14.7z"/><path fill="#4CAF50" d="M24 45c5.5 0 10.4-1.9 14.3-5.1l-6.6-5.4C29.7 36.4 27 37.3 24 37.3c-5.3 0-9.7-3.4-11.3-8l-6.6 5.1C9 40.3 15.9 45 24 45z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4 5.6l6.6 5.4C41.6 35.9 45 30.5 45 24c0-1.2-.1-2.4-1.4-3.5z"/></svg>
+      Sign in with Google
+    </button>
+
+    <div class="login-hint">Demo credentials — username: <b>admin</b>, password: <b>admin123</b></div>
+  </div>
+</div>
+
+<!-- ==================== MAIN APP (unchanged) ==================== -->
+<div id="appScreen" style="display:none">
+
+<div class="topbar"><div class="in">
+  <div class="brand">
+    <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"
+       stroke-linecap="round"><path d="M4 20L9 4M20 20L15 4M12 6v2M12 12v2M12 18v0"/></svg></span>
+    <span>RoadMark Studio<small>Road marking &amp; BOQ automation</small></span>
+  </div>
+  <span class="badge">KML → Google Earth</span>
+  <button id="logoutBtn" class="logout-btn">Log out</button>
+</div></div>
+
+<main>
+  <div class="hero">
+    <h1>Placeholder KML → image markers → BOQ</h1>
+    <p>Upload one KML whose placemarks are placeholder codes (A, B, C, D…). Every
+       point is processed at once: each code becomes its mapped sign/marking image.
+       Review the KMZ in Google Earth, then re-import the finalised file to get a
+       grouped, per-patch bill of quantities. All mapping lives in
+       <code>config.py</code>.</p>
+  </div>
+
+  <div class="panel">
+    <div class="body">
+      <!-- ============ STEP 1: placeholder KML -> image KMZ ============ -->
+      <div class="tbl-card" style="padding:22px;margin-bottom:18px">
+        <div class="rhead">
+          <span class="pill" style="color:#fff;background:var(--primary);border:0">1</span>
+          <h2 style="font-size:17px">Generate image KMZ</h2>
+        </div>
+        <p class="note" style="margin:0 0 16px">
+          One file, all codes at once. Each placemark (A, B, C, D…) is replaced by
+          the image mapped to its code and placed as a draggable marker.
+        </p>
+        <div id="dropK" class="drop">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0L8 8m4-4l4 4M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>
+          <div class="t">Drop the <b>placeholder .kml / .kmz</b> here</div>
+          <div class="s">or click to browse — placemark names are codes (A, B, C, D…)</div>
+          <div id="fnameK" class="fname"></div>
+          <input id="fileK" type="file" accept=".kml,.kmz" hidden>
+        </div>
+        <div class="actions-row">
+          <button id="goK" class="btn btn-primary" disabled>
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            Generate KMZ</button>
+          <span id="goK-hint" class="note" style="margin:0">Choose a placeholder KML.</span>
+        </div>
+        <div id="errK" class="err hidden"></div>
+        <div id="resultK" class="results hidden" style="margin-top:18px">
+          <div class="stats" style="grid-template-columns:repeat(2,1fr)">
+            <div class="stat"><div class="n" id="k-points">–</div><div class="l">Placemarks</div></div>
+            <div class="stat"><div class="n" id="k-unknown">–</div><div class="l">Unknown codes</div></div>
+          </div>
+          <div id="k-unknown-list" class="note" style="margin-bottom:12px"></div>
+          <div class="toolbar">
+            <a id="dlK" href="#" download><button class="btn btn-primary">
+              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
+              Download KMZ</button></a>
+            <button id="earthK" class="btn btn-earth">
+              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>
+              Open in Google Earth</button>
+          </div>
+          <div id="earthK-note" class="note"></div>
+        </div>
+      </div>
+
+      <!-- ============ STEP 2: finalised KML -> grouped BOQ ============ -->
+      <div class="tbl-card" style="padding:22px">
+        <div class="rhead">
+          <span class="pill" style="color:#fff;background:var(--primary);border:0">2</span>
+          <h2 style="font-size:17px">Generate BOQ from finalised KML</h2>
+        </div>
+        <p class="note" style="margin:0 0 16px">
+          After the client moves/adds/deletes markers and finalises the KML,
+          re-import it here. Codes become full item names, identical items are
+          grouped with quantities, and each geographic patch gets its own sheet.
+        </p>
+        <div style="margin-bottom:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px">
+            <label style="font-size:13px;font-weight:600;color:#334155">Select Project Zone (for Rate Calculation)</label>
+            <button type="button" id="openZonePrices" class="btn btn-ghost" style="padding:7px 13px;font-size:13px">
+              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+              Set Paint Prices by Zone
+            </button>
+          </div>
+          <div class="inp">
+            <select id="zoneB">
+              <option value="South" selected>South Zone — ₹ 2,500 / m²</option>
+              <option value="North">North Zone — ₹ 2,200 / m²</option>
+              <option value="East">East Zone — ₹ 2,400 / m²</option>
+              <option value="West">West Zone — ₹ 2,600 / m²</option>
+              <option value="Central">Central Zone — ₹ 2,800 / m²</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="dropB" class="drop">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0L8 8m4-4l4 4M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>
+          <div class="t">Drop the <b>finalised .kml / .kmz</b> here</div>
+          <div class="s">the file the client reviewed &amp; edited in Google Earth</div>
+          <div id="fnameB" class="fname"></div>
+          <input id="fileB" type="file" accept=".kml,.kmz" hidden>
+        </div>
+        <div class="actions-row">
+          <button id="goB" class="btn btn-primary" disabled>
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M10 4v16"/></svg>
+            Generate BOQ</button>
+          <span id="goB-hint" class="note" style="margin:0">Choose the finalised KML.</span>
+        </div>
+        <div id="errB" class="err hidden"></div>
+        <div id="resultB" class="results hidden" style="margin-top:18px">
+          <div class="toolbar">
+            <a id="dlB" href="#"><button class="btn btn-primary">
+              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M10 4v16"/></svg>
+              Download BOQ (Excel)</button></a>
+          </div>
+          <div id="patchTables"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>RoadMark Studio · Widths, bearings and curvature are detected from the road network
+  (OpenStreetMap). Estimates are engineering approximations; verify critical quantities before tender.</footer>
+
+</div>
+<!-- ==================== /MAIN APP ==================== -->
+
+<!-- ==================== ZONE PAINT-PRICE MODAL ==================== -->
+<div id="zoneModal" class="modal-overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="zoneModalTitle">
+    <div class="modal-head">
+      <span class="logo" style="width:26px;height:26px;border-radius:7px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      </span>
+      <h3 id="zoneModalTitle">Paint price by zone</h3>
+      <button type="button" class="x" id="closeZonePrices" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="note" style="margin:0 0 16px">Enter the paint rate (₹ per m²) for each zone.
+        These prices feed the BOQ cost calculation. Leave a field blank to keep its current value.</p>
+      <div id="zoneRows"></div>
+    </div>
+    <div id="zoneErr" class="modal-err"></div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-ghost" id="resetZonePrices" style="margin-right:auto">Reset to defaults</button>
+      <button type="button" class="btn btn-ghost" id="cancelZonePrices">Cancel</button>
+      <button type="button" class="btn btn-primary" id="saveZonePrices">Save prices</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+/* ---------------- login logic ---------------- */
+const LOGIN_USER = "admin";
+const LOGIN_PASS = "admin123";
+
+const loginScreen = document.getElementById("loginScreen");
+const appScreen = document.getElementById("appScreen");
+const loginForm = document.getElementById("loginForm");
+const loginErr = document.getElementById("loginErr");
+const googleBtn = document.getElementById("googleBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+
+loginForm.addEventListener("submit", function(e){
+  e.preventDefault();
+  const u = document.getElementById("loginUser").value.trim();
+  const p = document.getElementById("loginPass").value;
+  if (u === LOGIN_USER && p === LOGIN_PASS) {
+    loginErr.classList.remove("show");
+    loginScreen.style.display = "none";
+    appScreen.style.display = "block";
+  } else {
+    loginErr.classList.add("show");
+  }
+});
+
+/* demo-only button, does not perform a real sign-in */
+googleBtn.addEventListener("click", function(){
+  loginErr.textContent = "Google sign-in is for demo purposes only.";
+  loginErr.classList.add("show");
+});
+
+logoutBtn.addEventListener("click", function(){
+  appScreen.style.display = "none";
+  loginScreen.style.display = "flex";
+  document.getElementById("loginUser").value = "";
+  document.getElementById("loginPass").value = "";
+  loginErr.classList.remove("show");
+});
+
+/* ---------------- app logic: single placeholder->image->BOQ flow ---------------- */
+const $ = id => document.getElementById(id);
+let fileK = null, fileB = null, resK = null;
+
+/* small reusable drop-zone wiring */
+function wireDrop(dropId, inputId, nameId, onSet){
+  const d = $(dropId), inp = $(inputId);
+  d.onclick = () => inp.click();
+  d.ondragover = e => { e.preventDefault(); d.classList.add("drag"); };
+  d.ondragleave = () => d.classList.remove("drag");
+  d.ondrop = e => { e.preventDefault(); d.classList.remove("drag");
+    if (e.dataTransfer.files.length) pick(e.dataTransfer.files[0]); };
+  inp.onchange = () => inp.files.length && pick(inp.files[0]);
+  function pick(f){
+    if (!/\.(kml|kmz)$/i.test(f.name)) { alert("Please choose a .kml or .kmz file."); return; }
+    $(nameId).textContent = "✓ " + f.name;
+    onSet(f);
+  }
+}
+
+wireDrop("dropK", "fileK", "fnameK", f => {
+  fileK = f; $("goK").disabled = false; $("goK-hint").textContent = "Ready — click Generate KMZ.";
+  $("errK").classList.add("hidden");
+});
+wireDrop("dropB", "fileB", "fnameB", f => {
+  fileB = f; $("goB").disabled = false; $("goB-hint").textContent = "Ready — click Generate BOQ.";
+  $("errB").classList.add("hidden");
+});
+
+/* Step 1: placeholder KML -> image KMZ */
+$("goK").onclick = async () => {
+  if (!fileK) return;
+  const btn = $("goK"), html = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Generating…';
+  $("errK").classList.add("hidden");
+  try {
+    const fd = new FormData(); fd.append("kml", fileK);
+    const r = await fetch("/generate_kml", { method:"POST", body: fd });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || "Something went wrong.");
+    resK = d;
+    $("k-points").textContent = d.points;
+    $("k-unknown").textContent = d.unknown_codes.length;
+    $("k-unknown-list").innerHTML = d.unknown_codes.length
+      ? "Unknown codes kept as red pins for review: <b>" + d.unknown_codes.map(esc).join(", ") + "</b>"
+      : "All placemark codes were recognised.";
+    $("dlK").href = d.download_url; $("dlK").setAttribute("download", d.download_name);
+    $("resultK").classList.remove("hidden");
+  } catch (e) {
+    const el = $("errK"); el.textContent = e.message; el.classList.remove("hidden");
+  } finally { btn.disabled = false; btn.innerHTML = html; }
+};
+
+/* Open the generated KMZ in Google Earth Pro desktop application */
+$("earthK").onclick = async () => {
+  if (!resK) return;
+  const btn = $("earthK"), oldHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Opening…';
+  $("earthK-note").innerHTML = "";
+
+  try {
+    const r = await fetch("/open/" + resK.id, { method: "POST" });
+    const d = await r.json();
+    if (r.ok && d.ok) {
+      toast("Opening in Google Earth Pro (Desktop)…");
+      $("earthK-note").innerHTML =
+        '<span style="color:var(--ok);font-weight:600">✓ Launched Google Earth Pro desktop application.</span>';
+      return;
+    }
+    throw new Error(d.error || "Desktop app launcher returned an error.");
+  } catch (err) {
+    // If backend direct launch didn't succeed, trigger download and show desktop instructions
+    window.location.href = resK.download_url;
+    $("earthK-note").innerHTML =
+      "<b>Downloaded KMZ file.</b> Double-click <code>" + esc(resK.download_name) +
+      "</code> to open it in Google Earth Pro on your desktop.";
+    toast("Downloaded file. Double-click to open in Google Earth Pro.");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = oldHtml;
+  }
+};
+
+/* Step 2: finalised KML -> grouped per-patch BOQ */
+$("goB").onclick = async () => {
+  if (!fileB) return;
+  const btn = $("goB"), html = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Generating…';
+  $("errB").classList.add("hidden");
+  try {
+    const fd = new FormData();
+    fd.append("kml", fileB);
+    fd.append("zone", $("zoneB").value);
+    const r = await fetch("/generate_boq", { method:"POST", body: fd });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || "Something went wrong.");
+    $("dlB").href = d.download_url;
+    renderPatches(d.patches, d.zone);
+    $("resultB").classList.remove("hidden");
+  } catch (e) {
+    const el = $("errB"); el.textContent = e.message; el.classList.remove("hidden");
+  } finally { btn.disabled = false; btn.innerHTML = html; }
+};
+
+/* One table per patch (mirrors the per-worksheet Excel layout) */
+function renderPatches(patches, zoneName){
+  const money = n => "₹" + Number(n).toLocaleString(undefined,{maximumFractionDigits:2});
+  $("patchTables").innerHTML = patches.map(p => `
+    <div style="margin-top:16px">
+      <div class="rhead" style="margin-bottom:8px">
+        <h2 style="font-size:15px">${esc(p.patch)}</h2>
+        <span class="pill">${p.total_qty} item(s)</span>
+        ${zoneName ? `<span class="pill" style="background:#eff6ff;color:#2563eb;border-color:#bfdbfe">Zone: ${esc(zoneName)}</span>` : ""}
+      </div>
+      <div class="tbl-card"><div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Item</th><th>Zone</th><th>Quantity</th><th>Strips/Item</th><th>Unit Rate (₹/m²)</th><th>Road Width (m)</th><th>Total Cost</th></tr></thead>
+          <tbody>
+            ${p.items.map(r => `<tr>
+              <td>${esc(r.Item)}</td>
+              <td>${esc(r.Zone || zoneName || 'South')}</td>
+              <td>${r.Quantity}</td>
+              <td>${r["Strips/Item"] || 1}</td>
+              <td>${money(r["Unit Cost"] || r["Unit Rate (Rs/m2)"] || 0)}</td>
+              <td>${r["Road Width (m)"] != null ? r["Road Width (m)"] : "—"}</td>
+              <td>${money(r["Total Cost"])}</td>
+            </tr>`).join("")}
+            <tr><td colspan="2"><b>TOTAL</b></td><td><b>${p.total_qty}</b></td><td></td><td></td><td></td><td><b>${money(p.total_cost)}</b></td></tr>
+          </tbody>
+        </table>
+      </div></div>
+    </div>`).join("");
+}
+
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 2600); }
+function esc(s){ return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+/* ---------------- paint price by zone ---------------- */
+const ZONES = ["North","South","East","West","Central"];
+const ZONE_DEFAULTS = {North:2200,South:2500,East:2400,West:2600,Central:2800};
+let zoneRates = Object.assign({}, ZONE_DEFAULTS);
+
+function fmtMoney(n){ return Number(n).toLocaleString(undefined,{maximumFractionDigits:2}); }
+
+/* Rebuild the zone <select> labels from the current rates, keeping selection. */
+function updateZoneDropdown(){
+  const sel = $("zoneB"); const cur = sel.value;
+  sel.innerHTML = ZONES.map(z =>
+    `<option value="${z}">${z} Zone — ₹ ${fmtMoney(zoneRates[z])} / m²</option>`).join("");
+  sel.value = ZONES.includes(cur) ? cur : "South";
+}
+
+/* Populate the modal inputs from the current rates. */
+function renderZoneRows(){
+  $("zoneRows").innerHTML = ZONES.map(z => `
+    <div class="zrow">
+      <label for="zp_${z}">${z}</label>
+      <div class="inp"><span>₹</span>
+        <input id="zp_${z}" type="number" min="0" step="1" inputmode="decimal"
+               value="${zoneRates[z] ?? ''}" placeholder="rate / m²"></div>
+    </div>`).join("");
+}
+
+async function loadZoneRates(){
+  try {
+    const r = await fetch("/zone_prices");
+    if (r.ok) { const d = await r.json(); if (d.rates) zoneRates = d.rates; }
+  } catch(e) { /* keep defaults on any failure */ }
+  updateZoneDropdown();
+}
+
+function openZoneModal(){ $("zoneErr").classList.remove("show"); renderZoneRows(); $("zoneModal").classList.add("show"); }
+function closeZoneModal(){ $("zoneModal").classList.remove("show"); }
+
+$("openZonePrices").onclick = openZoneModal;
+$("closeZonePrices").onclick = closeZoneModal;
+$("cancelZonePrices").onclick = closeZoneModal;
+$("zoneModal").addEventListener("click", e => { if (e.target === $("zoneModal")) closeZoneModal(); });
+
+$("resetZonePrices").onclick = () => {
+  ZONES.forEach(z => { const el = $("zp_"+z); if (el) el.value = ZONE_DEFAULTS[z]; });
+  $("zoneErr").classList.remove("show");
+};
+
+$("saveZonePrices").onclick = async () => {
+  const err = $("zoneErr");
+  const rates = {};
+  for (const z of ZONES){
+    const raw = $("zp_"+z).value.trim();
+    if (raw === "") continue;                       // blank -> keep current
+    const v = Number(raw);
+    if (!isFinite(v) || v < 0){
+      err.textContent = `${z}: enter a valid non-negative number.`;
+      err.classList.add("show"); return;
+    }
+    rates[z] = v;
+  }
+  if (Object.keys(rates).length === 0){
+    err.textContent = "Enter at least one price."; err.classList.add("show"); return;
+  }
+  const btn = $("saveZonePrices"), html = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Saving…';
+  try {
+    const r = await fetch("/zone_prices", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({rates})
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || "Could not save prices.");
+    zoneRates = d.rates;
+    updateZoneDropdown();
+    closeZoneModal();
+    toast("Paint prices updated.");
+  } catch(e){
+    err.textContent = e.message; err.classList.add("show");
+  } finally { btn.disabled = false; btn.innerHTML = html; }
+};
+
+/* Load current rates once the app is shown (after login). */
+loadZoneRates();
+</script>
+</body>
+</html>
