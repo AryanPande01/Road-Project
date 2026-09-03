@@ -1773,47 +1773,53 @@ def export_corridor_excel(grouped, output_target):
     wb.save(output_target)
 
 
-def build_grouped_boq(points, distance_m=None, zone=None):
+def build_grouped_boq(points, distance_m=None, zone=None, **_kwargs):
     """
     Build the grouped BOQ from finalised points.
 
-    Groups identical items *within each geographic patch* and counts quantities.
-    Placeholder codes are replaced by their full reserved item names. Returns an
-    ordered dict:  patch_label -> list of row dicts.
+    When no 'X' corridor delimiters are present all placemarks go into a single
+    tab ("Patch 1") — no random geographic clustering.  Identical items within
+    the tab are grouped and counted.  Placeholder codes are replaced by their
+    full reserved item names.
+
+    Road Width is not measured here (no network calls) so generation is
+    instant.  The column is included as None/"n/a" for layout consistency.
+    For per-corridor road-width measurement use build_corridor_boq instead.
+
+    Returns an ordered dict:  patch_label -> list of row dicts.
     """
-    labels = cluster_patches(points, distance_m)
     selected_zone = zone or config.DEFAULT_ZONE
     zone_rate = config.get_zone_rate(selected_zone)
 
-    # patch -> item -> [count, unit_cost]
-    patches = {}
-    for (lon, lat, name), patch in zip(points, labels):
-        item = config.item_name(name)          # full name, or original if unknown
+    # ── Single group: all placemarks in one tab (no network calls) ───────────
+    # item -> {count, unit_cost}
+    bucket = {}
+    for lon, lat, name in points:
+        item = config.item_name(name)   # full name, or original if unknown
         cost = config.unit_cost(name)
         if cost <= 0:
             cost = zone_rate
-        bucket = patches.setdefault(patch, {})
-        if item not in bucket:
-            bucket[item] = [0, cost]
-        bucket[item][0] += 1
+        entry = bucket.setdefault(item, {"count": 0, "cost": cost})
+        entry["count"] += 1
 
-    result = {}
-    for patch, items in patches.items():
-        rows = []
-        for item in sorted(items):
-            qty, cost = items[item]
-            strips_count = extract_strip_count(item)
-            rows.append({
-                "Item": item,
-                "Zone": selected_zone,
-                "Quantity": qty,
-                "Strips/Item": strips_count,
-                "Unit Rate (Rs/m2)": round(cost, 2),
-                "Unit Cost": round(cost, 2),
-                "Total Cost": round(qty * cost, 2),
-            })
-        result[patch] = rows
-    return result
+    rows = []
+    for item in sorted(bucket):
+        e = bucket[item]
+        qty = e["count"]
+        cost = e["cost"]
+        strips_count = extract_strip_count(item)
+        rows.append({
+            "Item": item,
+            "Zone": selected_zone,
+            "Quantity": qty,
+            "Strips/Item": strips_count,
+            "Unit Rate (Rs/m2)": round(cost, 2),
+            "Unit Cost": round(cost, 2),
+            "Road Width (m)": None,   # n/a for non-corridor path
+            "Total Cost": round(qty * cost, 2),
+        })
+
+    return {"Patch 1": rows}
 
 
 def _safe_sheet_title(title, used):
@@ -1831,8 +1837,12 @@ def _safe_sheet_title(title, used):
 def export_grouped_excel(grouped, output_target):
     """
     Write the grouped BOQ to Excel: ONE worksheet per patch, each containing
-    only that patch's items. Columns: Item | Zone | Quantity | Unit Cost | Total Cost,
-    with a bold TOTAL row.
+    only that patch's items.
+
+    Columns: Item | Zone | Quantity | Strips/Item | Unit Rate (Rs/m2) |
+             Road Width (m) | Total Cost
+    with a bold TOTAL row.  The Road Width column matches the corridor Excel
+    layout so both exports are consistent.
 
     output_target: filepath (str) or a file-like object (e.g. BytesIO).
     """
@@ -1841,7 +1851,8 @@ def export_grouped_excel(grouped, output_target):
     wb = openpyxl.Workbook()
     wb.remove(wb.active)     # drop the default empty sheet; we add our own
 
-    headers = ["Item", "Zone", "Quantity", "Strips/Item", "Unit Rate (Rs/m2)", "Total Cost"]
+    headers = ["Item", "Zone", "Quantity", "Strips/Item",
+               "Unit Rate (Rs/m2)", "Road Width (m)", "Total Cost"]
     header_font = Font(bold=True, color="FFFFFF")
     header_fill = PatternFill("solid", fgColor="1976D2")
     total_font = Font(bold=True)
@@ -1865,19 +1876,21 @@ def export_grouped_excel(grouped, output_target):
             ws.cell(row=r, column=3, value=row["Quantity"])
             ws.cell(row=r, column=4, value=row.get("Strips/Item", 1))
             ws.cell(row=r, column=5, value=row["Unit Cost"])
-            ws.cell(row=r, column=6, value=row["Total Cost"])
+            wcell = row.get("Road Width (m)")
+            ws.cell(row=r, column=6, value=wcell if wcell is not None else "n/a")
+            ws.cell(row=r, column=7, value=row["Total Cost"])
             r += 1
 
         # TOTAL row (sum of quantities and costs for this patch).
         ws.cell(row=r, column=1, value="TOTAL").font = total_font
         tq = ws.cell(row=r, column=3, value=sum(x["Quantity"] for x in rows))
-        tc = ws.cell(row=r, column=6, value=round(sum(x["Total Cost"] for x in rows), 2))
+        tc = ws.cell(row=r, column=7, value=round(sum(x["Total Cost"] for x in rows), 2))
         tq.font = total_font
         tc.font = total_font
 
         # Reasonable column widths.
         ws.column_dimensions["A"].width = 32
-        for col in ("B", "C", "D", "E", "F"):
+        for col in ("B", "C", "D", "E", "F", "G"):
             ws.column_dimensions[col].width = 16
 
     wb.save(output_target)
